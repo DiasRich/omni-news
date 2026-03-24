@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Parser from "rss-parser";
+import { isCleanNewsText } from "@/lib/content-filter";
 
 type CustomItem = {
   "media:content"?: { $?: { url?: string } };
@@ -60,18 +61,30 @@ export async function GET(request: NextRequest) {
         extractImg(item.content ?? "") ||
         extractImg(item.summary ?? "");
 
+      const title = stripHtml(item.title ?? "");
+      const description = stripHtml(
+        item.contentSnippet ?? item.summary ?? item.content ?? ""
+      ).slice(0, 280);
+      if (!isCleanNewsText(title, description)) return null;
+
       return {
         id: `${url}::${i}::${item.pubDate ?? item.isoDate ?? i}`,
-        title: stripHtml(item.title ?? ""),
-        description: stripHtml(
-          item.contentSnippet ?? item.summary ?? item.content ?? ""
-        ).slice(0, 280),
+        title,
+        description,
         link: item.link ?? "#",
         pubDate: item.pubDate ?? item.isoDate ?? "",
         thumbnail: thumbnail?.startsWith("http") ? thumbnail : "",
         source: feed.title ?? "",
       };
-    });
+    }).filter(Boolean) as Array<{
+      id: string;
+      title: string;
+      description: string;
+      link: string;
+      pubDate: string;
+      thumbnail: string;
+      source: string;
+    }>;
 
     return NextResponse.json(
       { status: "ok", items, feedTitle: feed.title ?? "" },

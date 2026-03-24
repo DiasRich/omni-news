@@ -1,18 +1,6 @@
-import type { CategoryId } from "@/constants/categories";
-
-const CAT_SEEDS: Record<CategoryId, string[]> = {
-  main:     ["press", "city", "news", "media", "office", "print"],
-  world:    ["globe", "travel", "flag", "earth", "international", "map"],
-  russia:   ["moscow", "snow", "forest", "russia", "winter", "kremlin"],
-  crimea:   ["sea", "coast", "harbor", "beach", "sunset", "cliff"],
-  economy:  ["finance", "money", "market", "chart", "bank", "trade"],
-  science:  ["tech", "lab", "space", "robot", "science", "computer"],
-  politics: ["parliament", "vote", "government", "meeting", "politics", "flag"],
-};
-
-export function getThematicImg(title: string, cat: CategoryId): string {
-  const seeds = CAT_SEEDS[cat] ?? CAT_SEEDS.main;
-  const hash  = [...title].reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xFFFFF, 0);
-  const seed  = seeds[hash % seeds.length] + (hash & 0xFFF).toString();
+/** Плейсхолдер только по заголовку — одна и та же новость не «меняет» картинку при смене вкладки. */
+export function getThematicImg(title: string): string {
+  const hash = [...title].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
+  const seed = `omni-${hash.toString(36)}-${(hash & 0xfff).toString(16)}`;
   return `https://picsum.photos/seed/${seed}/800/500`;
 }

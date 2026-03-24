@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { NewsCard } from "@/components/NewsCard";
 import { VideoPreloader } from "@/components/VideoPreloader";
 import { CATEGORIES, type CategoryId } from "@/constants/categories";
+import { isCleanNewsText } from "@/lib/content-filter";
 import { GOLD, LOGO_SRC } from "@/constants/site";
 import type { AuthUser, CryptoPrices, NewsItem } from "@/types/news";
 
@@ -59,32 +60,63 @@ const GENERAL_FEEDS = [
   "https://ria.ru/export/rss2/index.xml",
 ];
 
-const KEYWORD_FILTERS: Partial<Record<CategoryId, string[]>> = {
-  crimea: ["крым", "симферополь", "севастополь", "ялта", "керчь", "крымский"],
+/** null = «главная»: без ключевых слов, только общие ленты. Иначе статья попадает в категорию только при совпадении с темой. */
+const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
+  main: null,
+  world: [
+    "мир", "миров", "международн", "зарубеж", "иностранн", "глобальн",
+    "оон", "нато", "ес ", "ес,", "евросоюз", "европ", "ази", "африк", "америк",
+    "сша", "украин", "киев", "китай", "пекин", "япон", "герман", "франц", "британ",
+    "ирак", "иран", "израил", "палестин", "сирия", "афган", "коре", "индия",
+    "латинск", "ближневосточн", "африканск",
+    "дипломат", "посол", "переговор", "саммит", "g7", "g20",
+    "мид ", "мид,", "генассамбле", "совбез",
+  ],
+  russia: [
+    "россия", "россии", "россий", "российск", "рф ", "рф,", "рф.", "москв", "петербург", "спб",
+    "кремль", "госдум", "совфед", "федерац", "президент росси", "путин",
+    "област", "край ", "республик", "губернатор", "мэр ",
+    "урал", "сибир", "дальневосточн", "поволж", "кавказ", "ростов", "казань",
+    "минобороны", "минздрав", "правительств росси", "фсб ", "сво ", "донбасс",
+  ],
+  crimea: [
+    "крым", "симферополь", "севастополь", "ялт", "керч", "евпатор", "феодоси",
+    "байдарск", "алушт", "крымск", "черноморск", "татар",
+  ],
+  economy: [
+    "экономик", "финанс", "банк", "банковск", "рубл", "доллар", "евро", "валют",
+    "инфляц", "цб ", "цб,", "центробанк", "ключев", "ставка", "стагфляц", "рецесс",
+    "бирж", "акци", "облигац", "инвест", "капитал", "прибыл", "убытк",
+    "нефт", "газ", "экспорт", "импорт", "санкци", "таможн", "налог", "бюджет",
+    "ввп", "валов", "компани", "рынок", "мосбирж", "ртс", "втб", "сбер",
+    "торговл", "контракт", "закупк", "логистик", "ipo",
+  ],
+  science: [
+    "наук", "учен", "исследован", "открыти", "технолог", "изобретен",
+    "космос", "роскосмос", "спутник", "ракет", "мкс", "nasa",
+    "робот", "ии ", "ии,", "искусственн интеллект", "нейросет",
+    "квант", "физик", "хими", "биолог", "ген ", "днк ",
+    "медицин", "здоров", "вакцин", "лечен", "врач", "клиник", "больниц",
+    "университет", "институт", "лабор", "эксперимент",
+    "климат", "эколог", "энергетик", "атомн", "ядерн", "космическ",
+  ],
+  politics: [
+    "политик", "госдум", "совфед", "депутат", "парламент", "партия",
+    "выбор", "кампани", "голосован", "оппозиц", "правительств", "министр",
+    "президент", "закон ", "законопроект", "указ ", "реформ",
+    "кремль", "администрац президента", "силовик",
+    "геополит", "дипломат", "мид ",
+    "беспилотник", "пво ", "пво,", "военн", "арми", "оборон", "нато ", "нато,",
+  ],
 };
-
-const FALLBACK_KWS: Partial<Record<CategoryId, string[]>> = {
-  world:    ["мировой", "зарубеж", "международ", "иностранн", "западн", "нато", "оон", "сша", "европ"],
-  russia:   ["россия", "российск", "москва", "кремль", "путин", "госдум", "минобр"],
-  crimea:   ["крым", "симферополь", "севастополь", "ялта", "керчь"],
-  economy:  ["экономик", "рубл", "инфляц", "бюджет", "ввп", "центробанк", "банк", "финанс", "нефт", "газ", "санкц", "торговл", "импорт", "экспорт"],
-  science:  ["наука", "технолог", "ученые", "исследован", "роскосмос", "космос", "искусственный интеллект", "робот", "квант", "физик", "биолог", "медицин"],
-  politics: ["политик", "госдум", "парламент", "правительств", "выборы", "путин", "кремль", "депутат", "совет федерации", "минист", "президент", "закон", "голосов"],
-};
-
-const STOPWORDS = [
-  "пенис", "интим", "порно", "эротик", "стриптиз",
-  "обнажен", "голый", "голая", "18+", "xxx",
-];
 
 // ─────────────────────────────── Utilities ────────────────────────────────────
 function matchesAny(item: NewsItem, kws: string[]): boolean {
   const text = `${item.title} ${item.description}`.toLowerCase();
   return kws.some((k) => text.includes(k));
 }
-function isClean(title: string): boolean {
-  const low = title.toLowerCase();
-  return Boolean(title) && !STOPWORDS.some((w) => low.includes(w));
+function isCleanItem(item: Pick<NewsItem, "title" | "description">): boolean {
+  return isCleanNewsText(item.title, item.description);
 }
 function dedupe(items: NewsItem[]): NewsItem[] {
   const seen = new Set<string>();
@@ -98,36 +130,39 @@ async function fetchFeed(url: string): Promise<NewsItem[]> {
     if (!res.ok) return [];
     const json = await res.json();
     if (!Array.isArray(json.items)) return [];
-    return (json.items as NewsItem[]).filter((it) => isClean(it.title));
+    return (json.items as NewsItem[]).filter((it) => isCleanItem(it));
   } catch {
     return [];
   }
 }
 
 async function fetchCategory(cat: CategoryId): Promise<NewsItem[]> {
-  const kws    = KEYWORD_FILTERS[cat];
-  const bypass = cat === "crimea" ? 1 : 0;
-
+  const kws = CATEGORY_KEYWORDS[cat];
   const results = await Promise.allSettled(FEEDS[cat].map((u) => fetchFeed(u)));
   const collected: NewsItem[] = [];
 
   results.forEach((r, i) => {
     if (r.status !== "fulfilled") return;
-    const trusted = i < bypass;
+    const crimeaTrusted = cat === "crimea" && i === 0;
     r.value.forEach((item) => {
-      if (trusted || !kws || matchesAny(item, kws)) collected.push(item);
+      if (!isCleanItem(item)) return;
+      if (kws === null) {
+        collected.push(item);
+        return;
+      }
+      if (crimeaTrusted || matchesAny(item, kws)) collected.push(item);
     });
   });
 
   let pool = dedupe(collected);
 
-  const fbKws = FALLBACK_KWS[cat];
-  if (pool.length < 15 && fbKws) {
+  if (pool.length < 12 && kws) {
     const genRes = await Promise.allSettled(GENERAL_FEEDS.map((u) => fetchFeed(u)));
     genRes.forEach((r) => {
       if (r.status !== "fulfilled") return;
       r.value.forEach((item) => {
-        if (matchesAny(item, fbKws)) collected.push(item);
+        if (!isCleanItem(item)) return;
+        if (matchesAny(item, kws)) collected.push(item);
       });
     });
     pool = dedupe(collected);
@@ -766,7 +801,7 @@ export default function Page() {
           {filtered.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
               {filtered.map((item, idx) => (
-                <NewsCard key={item.id} item={item} featured={idx === 0} category={activeCategory} />
+                <NewsCard key={item.id} item={item} featured={idx === 0} />
               ))}
             </div>
           )}
