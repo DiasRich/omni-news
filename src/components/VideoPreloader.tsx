@@ -7,7 +7,7 @@ const PRELOADER_FADE_MS = 500;
 
 const src = "/video.mp4";
 
-function primeIosPlayback(el: HTMLVideoElement | null) {
+function primePlayback(el: HTMLVideoElement | null) {
   if (!el) return;
   el.muted = true;
   el.defaultMuted = true;
@@ -18,66 +18,34 @@ function primeIosPlayback(el: HTMLVideoElement | null) {
 }
 
 /**
- * Фон: video object-cover (без CSS filter на <video> — иначе Safari iOS часто даёт чёрный кадр).
- * Поверх фона: полноэкранный слой backdrop-blur — «премиальное» размытие без поломки декодера.
- * Передний план: тот же ролик object-contain — логотип целиком в портрете.
+ * Один экземпляр <video> (iOS WebKit часто не рисует второй слой поверх backdrop-filter / двух декодеров).
+ * «Люкс» по краям — CSS-градиенты, без второго ролика и без filter/backdrop поверх видео.
  */
 export function VideoPreloader({ onDone }: { onDone: () => void }) {
   const [fade, setFade] = useState(false);
-  const mainRef = useRef<HTMLVideoElement>(null);
-  const bgRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useLayoutEffect(() => {
-    primeIosPlayback(mainRef.current);
-    primeIosPlayback(bgRef.current);
+    primePlayback(videoRef.current);
   }, []);
 
   useEffect(() => {
-    const main = mainRef.current;
-    const bg = bgRef.current;
-    if (!main || !bg) return;
-
-    const syncTime = () => {
-      const diff = Math.abs(bg.currentTime - main.currentTime);
-      if (diff > 0.12) bg.currentTime = main.currentTime;
-    };
-
-    const onPlay = () => {
-      void bg.play().catch(() => {});
-    };
-    const onPause = () => {
-      bg.pause();
-    };
-
-    const kick = () => {
-      bg.currentTime = main.currentTime;
-      primeIosPlayback(main);
-      primeIosPlayback(bg);
-    };
-
-    main.addEventListener("timeupdate", syncTime);
-    main.addEventListener("play", onPlay);
-    main.addEventListener("pause", onPause);
-    main.addEventListener("seeking", syncTime);
-    main.addEventListener("loadedmetadata", kick);
-    main.addEventListener("loadeddata", kick);
-    main.addEventListener("canplay", kick);
-
+    const v = videoRef.current;
+    if (!v) return;
+    const kick = () => primePlayback(v);
+    v.addEventListener("loadedmetadata", kick);
+    v.addEventListener("loadeddata", kick);
+    v.addEventListener("canplay", kick);
     return () => {
-      main.removeEventListener("timeupdate", syncTime);
-      main.removeEventListener("play", onPlay);
-      main.removeEventListener("pause", onPause);
-      main.removeEventListener("seeking", syncTime);
-      main.removeEventListener("loadedmetadata", kick);
-      main.removeEventListener("loadeddata", kick);
-      main.removeEventListener("canplay", kick);
+      v.removeEventListener("loadedmetadata", kick);
+      v.removeEventListener("loadeddata", kick);
+      v.removeEventListener("canplay", kick);
     };
   }, []);
 
   useEffect(() => {
     const startFade = setTimeout(() => {
-      mainRef.current?.pause();
-      bgRef.current?.pause();
+      videoRef.current?.pause();
       setFade(true);
     }, PRELOADER_SHOW_MS);
     const finish = setTimeout(onDone, PRELOADER_SHOW_MS + PRELOADER_FADE_MS);
@@ -87,59 +55,49 @@ export function VideoPreloader({ onDone }: { onDone: () => void }) {
     };
   }, [onDone]);
 
-  const videoAttrs = {
-    autoPlay: true,
-    muted: true,
-    playsInline: true,
-    loop: true,
-    preload: "auto" as const,
-  };
-
   return (
     <div
-      className={`fixed inset-0 z-[9999] min-h-[100dvh] w-full bg-black transition-opacity duration-500 ease-in-out ${
+      className={`fixed inset-0 z-[9999] min-h-[100dvh] w-full bg-[#030303] transition-opacity duration-500 ease-in-out ${
         fade ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
     >
-      <div className="absolute inset-0 h-full min-h-[100dvh] w-full overflow-hidden bg-black">
-        {/* Фон: cover, масштаб на обёртке — не вешаем filter на <video> (iOS) */}
+      <div className="absolute inset-0 h-full min-h-[100dvh] w-full overflow-hidden bg-[#030303]">
+        {/* Фон: золото + глубина, без blur над видео (совместимость iOS / in-app browser) */}
         <div
-          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+          className="pointer-events-none absolute inset-0 z-0"
           aria-hidden
-        >
-          <div className="absolute inset-0 scale-[1.14]">
-            <video
-              ref={bgRef}
-              {...videoAttrs}
-              tabIndex={-1}
-              className="h-full w-full object-cover object-center"
-            >
-              <source src={src} type="video/mp4" />
-            </video>
-          </div>
-        </div>
-
-        {/* Размытие «сверху» кадра, не через filter на video */}
-        <div
-          className="pointer-events-none absolute inset-0 z-[1] bg-black/20 backdrop-blur-[44px] backdrop-saturate-125"
           style={{
-            WebkitBackdropFilter: "blur(44px) saturate(1.15)",
+            background: `
+              radial-gradient(ellipse 130% 85% at 50% 36%, rgba(212, 175, 55, 0.2) 0%, transparent 52%),
+              radial-gradient(ellipse 90% 55% at 50% 88%, rgba(212, 175, 55, 0.08) 0%, transparent 45%),
+              linear-gradient(180deg, #060605 0%, #020202 42%, #050504 100%)
+            `,
           }}
-          aria-hidden
         />
-
+        {/* Тонкая «сетка» как на ролике — чистый CSS */}
         <div
-          className="pointer-events-none absolute inset-0 z-[1] bg-black/10"
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.12]"
           aria-hidden
+          style={{
+            backgroundImage: `
+              linear-gradient(115deg, transparent 48%, rgba(212,175,55,0.35) 49%, rgba(212,175,55,0.35) 51%, transparent 52%),
+              linear-gradient(295deg, transparent 48%, rgba(212,175,55,0.2) 49%, rgba(212,175,55,0.2) 51%, transparent 52%)
+            `,
+            backgroundSize: "120% 120%",
+            backgroundPosition: "center",
+          }}
         />
 
         <video
-          ref={mainRef}
-          {...videoAttrs}
-          className="high-quality absolute inset-0 z-[2] h-full w-full object-contain object-center"
-        >
-          <source src={src} type="video/mp4" />
-        </video>
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          loop
+          preload="auto"
+          src={src}
+          className="absolute inset-0 z-[1] h-full w-full object-contain object-center"
+        />
       </div>
     </div>
   );
