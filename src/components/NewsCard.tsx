@@ -1,21 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import type { CategoryId } from "@/constants/categories";
 import { GOLD } from "@/constants/site";
 import { getThematicImg } from "@/lib/thematic-image";
+import { shouldUseThematicImage } from "@/lib/thumbnail";
 import { timeAgo } from "@/lib/time-ago";
 import type { NewsItem } from "@/types/news";
 
 export function NewsCard({
   item,
   featured,
+  category,
 }: {
   item: NewsItem;
   featured?: boolean;
+  category: CategoryId;
 }) {
-  const thematic = getThematicImg(item.title);
+  const thematic = getThematicImg(item.title, category);
   const [imgSrc, setImgSrc] = useState(() =>
-    item.thumbnail?.startsWith("http") ? item.thumbnail : thematic
+    shouldUseThematicImage(item.thumbnail) ? thematic : item.thumbnail!
   );
   const [imgReady, setImgReady] = useState(false);
   const imgH = featured ? "clamp(220px,26vw,340px)" : "168px";

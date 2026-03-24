@@ -22,49 +22,59 @@ const FEEDS: Record<CategoryId, string[]> = {
     "https://lenta.ru/rss/news",
     "https://ria.ru/export/rss2/index.xml",
     "https://www.kommersant.ru/RSS/news.xml",
+    "https://www.interfax.ru/rss.asp",
+    "https://tass.ru/rss/v2.xml",
   ],
   world:    [
     "https://lenta.ru/rss/news/world",
     "https://ria.ru/export/rss2/world/index.xml",
     "https://www.kommersant.ru/RSS/world.xml",
+    "https://rg.ru/xml/index.xml",
   ],
   russia:   [
     "https://lenta.ru/rss/news/russia",
     "https://ria.ru/export/rss2/russia/index.xml",
     "https://www.kommersant.ru/RSS/russia.xml",
+    "https://rg.ru/xml/index.xml",
   ],
   crimea:   [
     "https://crimea.ria.ru/export/rss2/index.xml",
     "https://lenta.ru/rss/news/russia",
     "https://ria.ru/export/rss2/russia/index.xml",
+    "https://www.kommersant.ru/RSS/russia.xml",
   ],
   economy:  [
     "https://lenta.ru/rss/news/economy",
     "https://ria.ru/export/rss2/economy/index.xml",
     "https://www.kommersant.ru/RSS/economics.xml",
+    "https://www.vedomosti.ru/rss/rubric/economics",
+    "https://www.gazeta.ru/export/rss/business.xml",
   ],
   science:  [
     "https://lenta.ru/rss/news/science",
     "https://ria.ru/export/rss2/science/index.xml",
     "https://www.kommersant.ru/RSS/science.xml",
+    "https://www.gazeta.ru/export/rss/science.xml",
   ],
   politics: [
     "https://lenta.ru/rss/news/politics",
     "https://ria.ru/export/rss2/politics/index.xml",
     "https://www.kommersant.ru/RSS/politics.xml",
+    "https://www.gazeta.ru/export/rss/politics.xml",
   ],
 };
 
 const GENERAL_FEEDS = [
   "https://lenta.ru/rss/news",
   "https://ria.ru/export/rss2/index.xml",
+  "https://www.interfax.ru/rss.asp",
 ];
 
 /** null = «главная»: без ключевых слов, только общие ленты. Иначе статья попадает в категорию только при совпадении с темой. */
 const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
   main: null,
   world: [
-    "мир", "миров", "международн", "зарубеж", "иностранн", "глобальн",
+    "миров", "международн", "зарубеж", "иностранн", "глобальн",
     "оон", "нато", "ес ", "ес,", "евросоюз", "европ", "ази", "африк", "америк",
     "сша", "украин", "киев", "китай", "пекин", "япон", "герман", "франц", "британ",
     "ирак", "иран", "израил", "палестин", "сирия", "афган", "коре", "индия",
@@ -81,7 +91,7 @@ const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
   ],
   crimea: [
     "крым", "симферополь", "севастополь", "ялт", "керч", "евпатор", "феодоси",
-    "байдарск", "алушт", "крымск", "черноморск", "татар",
+    "байдарск", "алушт", "крымск", "черноморск", "крымскотатар", "бахчисарай", "армянск",
   ],
   economy: [
     "экономик", "финанс", "банк", "банковск", "рубл", "доллар", "евро", "валют",
@@ -93,7 +103,8 @@ const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
   ],
   science: [
     "наук", "учен", "исследован", "открыти", "технолог", "изобретен",
-    "космос", "роскосмос", "спутник", "ракет", "мкс", "nasa",
+    "космос", "роскосмос", "спутник", "мкс", "nasa",
+    "космодром", "ракетостро", "телескоп", "астроном", "марс", "лун",
     "робот", "ии ", "ии,", "искусственн интеллект", "нейросет",
     "квант", "физик", "хими", "биолог", "ген ", "днк ",
     "медицин", "здоров", "вакцин", "лечен", "врач", "клиник", "больниц",
@@ -110,10 +121,37 @@ const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
   ],
 };
 
+/** Военные темы не попадают в «Науку» и «Экономику», даже при случайном совпадении слова. */
+const CATEGORY_EXCLUDE: Partial<Record<CategoryId, string[]>> = {
+  science: [
+    "беспилотник", "бпла", "дрон", "дронов",
+    "артиллер", "миномет", "рсзо", "фронт", "наступлен", "контрнаступ",
+    "всу ", "всу,", "сво ", "сво,", "сво.",
+    "специальн военн", "военн операц", "военнослужащ",
+    "украинск арм", "российск войск", "оккупацион",
+    "ракетн удар", "ракетн обстрел", "ракетами по", "крылатых ракет",
+    "херсон", "запорож", "донецк", "луганск", "одесс", "николаев",
+    "мобилизован", "частичн мобилизац",
+  ],
+  economy: [
+    "беспилотник", "бпла", "дрон", "артиллер", "всу ", "специальн военн",
+    "наступлен", "фронт", "ракетн удар", "ракетн обстрел",
+  ],
+};
+
 // ─────────────────────────────── Utilities ────────────────────────────────────
 function matchesAny(item: NewsItem, kws: string[]): boolean {
   const text = `${item.title} ${item.description}`.toLowerCase();
   return kws.some((k) => text.includes(k));
+}
+
+function categoryAcceptsItem(item: NewsItem, cat: CategoryId): boolean {
+  const kws = CATEGORY_KEYWORDS[cat];
+  if (kws === null) return true;
+  if (!matchesAny(item, kws)) return false;
+  const ex = CATEGORY_EXCLUDE[cat];
+  if (ex && matchesAny(item, ex)) return false;
+  return true;
 }
 function isCleanItem(item: Pick<NewsItem, "title" | "description">): boolean {
   return isCleanNewsText(item.title, item.description);
@@ -121,6 +159,47 @@ function isCleanItem(item: Pick<NewsItem, "title" | "description">): boolean {
 function dedupe(items: NewsItem[]): NewsItem[] {
   const seen = new Set<string>();
   return items.filter(({ title }) => title && !seen.has(title) && seen.add(title));
+}
+
+function hostOf(it: NewsItem): string {
+  try {
+    return new URL(it.link).hostname.replace(/^www\./, "");
+  } catch {
+    return "unknown";
+  }
+}
+
+/** Чередование доменов, чтобы не доминировала одна лента. */
+function diversifyByDomain(items: NewsItem[]): NewsItem[] {
+  if (items.length < 4) return items;
+  const sorted = [...items].sort(
+    (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+  );
+  const buckets = new Map<string, NewsItem[]>();
+  for (const it of sorted) {
+    const h = hostOf(it);
+    if (!buckets.has(h)) buckets.set(h, []);
+    buckets.get(h)!.push(it);
+  }
+  const hosts = [...buckets.keys()].sort(
+    (a, b) => buckets.get(b)!.length - buckets.get(a)!.length
+  );
+  const out: NewsItem[] = [];
+  const pos = new Map<string, number>(hosts.map((h) => [h, 0]));
+  let added = true;
+  while (added) {
+    added = false;
+    for (const h of hosts) {
+      const b = buckets.get(h)!;
+      const i = pos.get(h)!;
+      if (i < b.length) {
+        out.push(b[i]);
+        pos.set(h, i + 1);
+        added = true;
+      }
+    }
+  }
+  return out;
 }
 
 // ─────────────────────────────── Fetch layer ─────────────────────────────────
@@ -141,16 +220,15 @@ async function fetchCategory(cat: CategoryId): Promise<NewsItem[]> {
   const results = await Promise.allSettled(FEEDS[cat].map((u) => fetchFeed(u)));
   const collected: NewsItem[] = [];
 
-  results.forEach((r, i) => {
+  results.forEach((r) => {
     if (r.status !== "fulfilled") return;
-    const crimeaTrusted = cat === "crimea" && i === 0;
     r.value.forEach((item) => {
       if (!isCleanItem(item)) return;
       if (kws === null) {
         collected.push(item);
         return;
       }
-      if (crimeaTrusted || matchesAny(item, kws)) collected.push(item);
+      if (categoryAcceptsItem(item, cat)) collected.push(item);
     });
   });
 
@@ -162,14 +240,13 @@ async function fetchCategory(cat: CategoryId): Promise<NewsItem[]> {
       if (r.status !== "fulfilled") return;
       r.value.forEach((item) => {
         if (!isCleanItem(item)) return;
-        if (matchesAny(item, kws)) collected.push(item);
+        if (categoryAcceptsItem(item, cat)) collected.push(item);
       });
     });
     pool = dedupe(collected);
   }
 
-  pool.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-  return pool;
+  return diversifyByDomain(pool);
 }
 
 // ─────────────────────────────── UI: Skeleton ────────────────────────────────
@@ -801,7 +878,7 @@ export default function Page() {
           {filtered.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
               {filtered.map((item, idx) => (
-                <NewsCard key={item.id} item={item} featured={idx === 0} />
+                <NewsCard key={item.id} item={item} featured={idx === 0} category={activeCategory} />
               ))}
             </div>
           )}
