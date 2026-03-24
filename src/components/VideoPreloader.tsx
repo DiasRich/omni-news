@@ -8,7 +8,7 @@ const PRELOADER_FADE_MS = 500;
 /**
  * Два слоя одного ролика:
  * — фон: object-cover + blur + лёгкий scale — заполняет весь экран без «пустых» полос;
- * — передний план: object-contain — весь кадр (логотип) без обрезки на телефоне и ультрашироких.
+ * — передний план: object-cover + full-bleed (iOS: autoPlay, muted, playsInline, loop, preload).
  * Воспроизведение синхронизируется по времени.
  */
 export function VideoPreloader({ onDone }: { onDone: () => void }) {
@@ -65,7 +65,7 @@ export function VideoPreloader({ onDone }: { onDone: () => void }) {
     };
   }, [onDone]);
 
-  const src = "/IMG_8325.MP4";
+  const src = "/video.mp4";
 
   return (
     <div
@@ -80,10 +80,11 @@ export function VideoPreloader({ onDone }: { onDone: () => void }) {
           autoPlay
           muted
           playsInline
+          loop
           preload="auto"
           tabIndex={-1}
           aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           style={{
             transform: "scale(1.18)",
             filter:    "blur(48px)",
@@ -100,14 +101,15 @@ export function VideoPreloader({ onDone }: { onDone: () => void }) {
           aria-hidden
         />
 
-        {/* Слой 2: чёткий кадр целиком (contain) */}
+        {/* Слой 2: чёткий слой поверх размытого фона */}
         <video
           ref={mainRef}
           autoPlay
           muted
           playsInline
+          loop
           preload="auto"
-          className="high-quality absolute inset-0 z-[2] h-full w-full object-contain object-center"
+          className="high-quality absolute inset-0 z-[2] h-full w-full object-cover"
         >
           <source src={src} type="video/mp4" />
         </video>
