@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OmniNews
 
-## Getting Started
+**OmniNews** — Premium News Aggregator. **Stack:** Next.js, Tailwind CSS, TypeScript.
 
-First, run the development server:
+Quiet-luxury dark UI, live crypto ticker, category RSS feeds (server-side proxy), email OTP auth, video intro.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Repository root (minimal Next.js)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Вся логика приложения живёт в **`src/`**. В корне остаётся только то, что требует экосистема Next/Node:
 
-## Learn More
+| File / folder | Why it stays here |
+|---------------|-------------------|
+| `package.json`, `package-lock.json` | npm |
+| `next.config.ts` | единственный конфиг Next (**нет** `next.config.js`-дубликата) |
+| `tsconfig.json`, `next-env.d.ts` | TypeScript / Next |
+| `postcss.config.mjs`, `eslint.config.mjs` | Tailwind / ESLint |
+| `public/` | статика (`logo.jpeg`, `IMG_8325.MP4`, …) |
+| `.gitignore` | Git |
+| `README.md` | описание репозитория |
+| `.env.example` | шаблон переменных (без секретов), **коммитится** |
 
-To learn more about Next.js, take a look at the following resources:
+Файлы `.env*` с секретами **не коммитятся** (см. `.gitignore`). Скопируй `.env.example` → `.env.local` в корне проекта.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## `src/` layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Path | Role |
+|------|------|
+| `src/app/` | App Router, `layout.tsx`, `globals.css`, страницы |
+| `src/app/api/` | RSS (`/api/feed`), auth (`/api/auth/*`) |
+| `src/components/` | `VideoPreloader`, `Navbar`, `NewsCard` |
+| `src/constants/` | токены сайта, категории |
+| `src/lib/` | хелперы (thematic images, mailer, JWT) |
+| `src/types/` | общие типы TypeScript |
 
-## Deploy on Vercel
+## Environment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+См. **`.env.example`**. Основное: `JWT_SECRET`; для писем с кодом — SMTP-поля (`SMTP_USER`, `SMTP_PASS`, …).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+- `npm run dev` — dev server  
+- `npm run build` — production build  
+- `npm run start` — запуск production  
+- `npm run lint` — ESLint  
