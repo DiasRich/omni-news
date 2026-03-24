@@ -17,13 +17,12 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000;
 const categoryCache = new Map<string, { items: NewsItem[]; ts: number }>();
 
 // ─────────────────────────────── Feeds ───────────────────────────────────────
+/** Сначала только стабильные ленты; опциональные — ниже, чтобы не бить Netlify пачкой запросов. */
 const FEEDS: Record<CategoryId, string[]> = {
   main:     [
     "https://lenta.ru/rss/news",
     "https://ria.ru/export/rss2/index.xml",
     "https://www.kommersant.ru/RSS/news.xml",
-    "https://www.interfax.ru/rss.asp",
-    "https://tass.ru/rss/v2.xml",
   ],
   world:    [
     "https://lenta.ru/rss/news/world",
@@ -64,11 +63,20 @@ const FEEDS: Record<CategoryId, string[]> = {
   ],
 };
 
+/** Догружаем по одному, если после основных лент мало материалов. */
+const FEEDS_OPTIONAL: Partial<Record<CategoryId, string[]>> = {
+  main: [
+    "https://www.interfax.ru/rss.asp",
+    "https://tass.ru/rss/v2.xml",
+  ],
+};
+
 const GENERAL_FEEDS = [
   "https://lenta.ru/rss/news",
   "https://ria.ru/export/rss2/index.xml",
-  "https://www.interfax.ru/rss.asp",
 ];
+
+const EMERGENCY_FEED = "https://lenta.ru/rss/news";
 
 /** null = «главная»: без ключевых слов, только общие ленты. Иначе статья попадает в категорию только при совпадении с темой. */
 const CATEGORY_KEYWORDS: Record<CategoryId, string[] | null> = {
@@ -215,34 +223,68 @@ async function fetchFeed(url: string): Promise<NewsItem[]> {
   }
 }
 
+function ingestForCategory(
+  collected: NewsItem[],
+  items: NewsItem[],
+  cat: CategoryId
+): void {
+  const kws = CATEGORY_KEYWORDS[cat];
+  for (const item of items) {
+    if (!isCleanItem(item)) continue;
+    if (kws === null) {
+      collected.push(item);
+      continue;
+    }
+    if (categoryAcceptsItem(item, cat)) collected.push(item);
+  }
+}
+
+/**
+ * Ленты по очереди — меньше параллельных serverless-вызовов на Netlify (избегаем пустого ответа).
+ */
 async function fetchCategory(cat: CategoryId): Promise<NewsItem[]> {
   const kws = CATEGORY_KEYWORDS[cat];
-  const results = await Promise.allSettled(FEEDS[cat].map((u) => fetchFeed(u)));
   const collected: NewsItem[] = [];
 
-  results.forEach((r) => {
-    if (r.status !== "fulfilled") return;
-    r.value.forEach((item) => {
-      if (!isCleanItem(item)) return;
-      if (kws === null) {
-        collected.push(item);
-        return;
-      }
-      if (categoryAcceptsItem(item, cat)) collected.push(item);
-    });
-  });
+  for (const u of FEEDS[cat]) {
+    const items = await fetchFeed(u);
+    ingestForCategory(collected, items, cat);
+    if (kws === null && collected.length >= 28) break;
+    if (kws && collected.length >= 36) break;
+  }
 
   let pool = dedupe(collected);
 
+  const optional = FEEDS_OPTIONAL[cat];
+  if (optional && pool.length < 14) {
+    for (const u of optional) {
+      const items = await fetchFeed(u);
+      ingestForCategory(collected, items, cat);
+      pool = dedupe(collected);
+      if (pool.length >= 18) break;
+    }
+  }
+
   if (pool.length < 12 && kws) {
-    const genRes = await Promise.allSettled(GENERAL_FEEDS.map((u) => fetchFeed(u)));
-    genRes.forEach((r) => {
-      if (r.status !== "fulfilled") return;
-      r.value.forEach((item) => {
-        if (!isCleanItem(item)) return;
-        if (categoryAcceptsItem(item, cat)) collected.push(item);
-      });
-    });
+    for (const u of GENERAL_FEEDS) {
+      const items = await fetchFeed(u);
+      ingestForCategory(collected, items, cat);
+      pool = dedupe(collected);
+      if (pool.length >= 12) break;
+    }
+  }
+
+  if (pool.length === 0) {
+    for (const u of FEEDS[cat]) {
+      const items = await fetchFeed(u);
+      ingestForCategory(collected, items, cat);
+      pool = dedupe(collected);
+      if (pool.length > 0) break;
+    }
+  }
+  if (pool.length === 0 && cat === "main") {
+    const items = await fetchFeed(EMERGENCY_FEED);
+    ingestForCategory(collected, items, cat);
     pool = dedupe(collected);
   }
 
@@ -659,6 +701,7 @@ export default function Page() {
   const freshRef     = useRef<NewsItem[]>([]);
   const activeCatRef = useRef<CategoryId>("main");
   const fetchBusy    = useRef(false);
+  const loadGenRef   = useRef(0);
   const menuRef      = useRef<HTMLDivElement>(null);
 
   // ── Restore session on mount ───────────────────────────────────────────────
@@ -699,7 +742,7 @@ export default function Page() {
 
   // ── Load category ──────────────────────────────────────────────────────────
   const loadCat = useCallback(async (cat: CategoryId) => {
-    if (fetchBusy.current) return;
+    const gen = ++loadGenRef.current;
     fetchBusy.current = true;
     setLoading(true);
     setFetchError(false);
@@ -709,12 +752,21 @@ export default function Page() {
       poolRef.current = cached.items;
     } else {
       const items = await fetchCategory(cat);
+      if (gen !== loadGenRef.current) {
+        fetchBusy.current = false;
+        setLoading(false);
+        return;
+      }
       poolRef.current = items;
       if (items.length > 0) categoryCache.set(cat, { items, ts: Date.now() });
       else setFetchError(true);
     }
 
-    if (cat !== activeCatRef.current) { fetchBusy.current = false; setLoading(false); return; }
+    if (gen !== loadGenRef.current) {
+      fetchBusy.current = false;
+      setLoading(false);
+      return;
+    }
 
     const count = Math.min(PAGE_SIZE, poolRef.current.length);
     setNews(poolRef.current.slice(0, count));

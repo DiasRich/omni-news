@@ -17,7 +17,7 @@ const parser = new Parser<Record<string, unknown>, CustomItem>({
       ["content:encoded", "content:encoded"],
     ],
   },
-  timeout: 10_000,
+  timeout: 25_000,
   headers: {
     "User-Agent":
       "Mozilla/5.0 (compatible; OmniNewsBot/1.0; +https://omninews.ru)",
