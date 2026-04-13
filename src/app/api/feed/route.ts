@@ -20,7 +20,7 @@ const parser = new Parser<Record<string, unknown>, CustomItem>({
   timeout: 25_000,
   headers: {
     "User-Agent":
-      "Mozilla/5.0 (compatible; OmniNewsBot/1.0; +https://omninews.ru)",
+      "Mozilla/5.0 (compatible; MiraktBot/1.0; +https://mirakt.news)",
     Accept: "application/rss+xml, application/xml, text/xml, */*",
   },
 });

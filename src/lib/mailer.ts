@@ -5,8 +5,8 @@ export type MailIntent = "login" | "register";
 function buildHtml(code: string, intent: MailIntent): string {
   const subtitle =
     intent === "register"
-      ? "Введите его в OmniNews, чтобы завершить регистрацию"
-      : "Введите его в OmniNews для входа в аккаунт";
+      ? "Введите его в Mirakt News, чтобы завершить регистрацию"
+      : "Введите его в Mirakt News для входа в аккаунт";
   return `<!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -18,7 +18,7 @@ function buildHtml(code: string, intent: MailIntent): string {
           <!-- Logo -->
           <table cellpadding="0" cellspacing="0" style="margin-bottom:36px;">
             <tr>
-              <td style="color:#D4AF37;font-size:16px;font-weight:700;letter-spacing:0.12em;">OmniNews</td>
+              <td style="color:#D4AF37;font-size:16px;font-weight:700;letter-spacing:0.12em;">Mirakt News</td>
             </tr>
           </table>
           <!-- Title -->
@@ -55,7 +55,7 @@ export async function sendVerificationEmail(
 
   // Dev mode: no SMTP configured → log code to terminal
   if (!user || !pass) {
-    console.log(`\n┌─── OmniNews: Verification Code (${label}) ─┐`);
+    console.log(`\n┌─── Mirakt News: Verification Code (${label}) ─┐`);
     console.log(`│  Email : ${to}`);
     console.log(`│  Code  : ${code}`);
     console.log(`└────────────────────────────────────────────┘\n`);
@@ -71,11 +71,11 @@ export async function sendVerificationEmail(
 
   const subject =
     intent === "register"
-      ? `${code} — код регистрации OmniNews`
-      : `${code} — код входа OmniNews`;
+      ? `${code} — код регистрации Mirakt News`
+      : `${code} — код входа Mirakt News`;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"OmniNews" <${user}>`,
+    from: process.env.SMTP_FROM ?? `"Mirakt News" <${user}>`,
     to,
     subject,
     html: buildHtml(code, intent),

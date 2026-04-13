@@ -16,7 +16,7 @@ export default function AboutPage() {
       </Link>
       <h1 className="mb-6 text-3xl font-semibold tracking-tight">О нас</h1>
       <p className="text-white/60">
-        Раздел в разработке. Здесь появится информация о редакции OmniNews.
+        Раздел в разработке. Здесь появится информация о редакции Mirakt News.
       </p>
     </main>
   );

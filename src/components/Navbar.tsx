@@ -3,7 +3,7 @@
 import type { CSSProperties, Dispatch, RefObject, SetStateAction } from "react";
 import { CATEGORIES } from "@/constants/categories";
 import type { CategoryId } from "@/constants/categories";
-import { GOLD, LOGO_SRC } from "@/constants/site";
+import { GOLD } from "@/constants/site";
 import { formatPrice } from "@/lib/format-price";
 import type { AuthUser, CryptoPrices, NewsItem } from "@/types/news";
 
@@ -102,25 +102,26 @@ export function Navbar({
           className="max-w-7xl mx-auto px-4 sm:px-6 h-[62px] grid items-center gap-4"
           style={{ gridTemplateColumns: "auto 1fr auto" }}
         >
-          <a href="/" className="flex items-center gap-3 shrink-0">
+          <a href="/" className="flex items-center gap-2.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={LOGO_SRC}
-              alt="OmniNews"
+              src="/image.png"
+              alt="Mirakt"
               style={{
-                width: 38,
-                height: 38,
+                width: 32,
+                height: 32,
                 borderRadius: "50%",
                 border: `1.5px solid ${GOLD}`,
-                boxShadow: "0 0 14px rgba(212,175,55,0.28)",
+                boxShadow: "0 0 10px rgba(212,175,55,0.25)",
                 objectFit: "cover",
+                flexShrink: 0,
               }}
             />
             <span
-              className="hidden sm:block text-[17px] tracking-[0.12em]"
-              style={{ color: GOLD, fontWeight: 700, fontFamily: "Inter, sans-serif" }}
+              className="hidden sm:block text-[16px] tracking-[0.1em]"
+              style={{ color: GOLD, fontWeight: 700, fontFamily: "Inter, sans-serif", lineHeight: 1 }}
             >
-              OmniNews
+              Mirakt
             </span>
           </a>
 

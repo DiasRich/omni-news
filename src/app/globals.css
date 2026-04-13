@@ -52,6 +52,14 @@ body {
     animation: marquee 52s linear infinite;
   }
 
+  /* Скрыть браузерные медиа-контролы над видео */
+  video::-webkit-media-controls,
+  video::-webkit-media-controls-overlay-play-button,
+  video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
+  }
+
   /* Видео-прелоадер: стабильный слой отрисовки, без лишнего размытия */
   .high-quality {
     transform: translateZ(0);

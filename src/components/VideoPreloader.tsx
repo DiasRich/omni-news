@@ -96,7 +96,11 @@ export function VideoPreloader({ onDone }: { onDone: () => void }) {
           loop
           preload="auto"
           src={src}
+          disablePictureInPicture
+          disableRemotePlayback
+          controlsList="nodownload nofullscreen noremoteplayback"
           className="absolute inset-0 z-[1] h-full w-full object-contain object-center"
+          style={{ pointerEvents: "none" }}
         />
       </div>
     </div>

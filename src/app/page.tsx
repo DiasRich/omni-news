@@ -476,11 +476,11 @@ function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (u: Aut
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={LOGO_SRC}
-            alt="OmniNews"
+            alt="Mirakt News"
             style={{ width: 32, height: 32, borderRadius: "50%", border: `1.5px solid ${GOLD}`, objectFit: "cover" }}
           />
           <span style={{ color: GOLD, fontWeight: 700, fontSize: 15, letterSpacing: "0.12em", fontFamily: "Inter, sans-serif" }}>
-            OmniNews
+            Mirakt
           </span>
         </div>
 
@@ -951,8 +951,8 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <a href="/" className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={LOGO_SRC} alt="OmniNews" style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${GOLD}`, objectFit: "cover" }} />
-              <span className="text-[11px] tracking-[0.18em]" style={{ color: GOLD, fontWeight: 700 }}>OmniNews</span>
+              <img src={LOGO_SRC} alt="Mirakt News" style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${GOLD}`, objectFit: "cover" }} />
+              <span className="text-[11px] tracking-[0.18em]" style={{ color: GOLD, fontWeight: 700 }}>Mirakt</span>
             </a>
             <div className="flex gap-6 text-[10px] tracking-widest text-white/18">
               <Link href="/o-nas"            className="hover:text-white/50 transition-colors">О НАС</Link>

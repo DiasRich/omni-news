@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "OmniNews — новостной портал",
-    template: "%s · OmniNews",
+    default: "Mirakt — новостной портал",
+    template: "%s · Mirakt",
   },
   description:
-    "Актуальные новости: технологии, экономика, мир и Россия. OmniNews.",
+    "Актуальные новости: технологии, экономика, мир и Россия. Mirakt News.",
 };
 
 export default function RootLayout({
