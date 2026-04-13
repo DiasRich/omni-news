@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --color-omni-gold: #d4af37;
+  --color-omni-gold-soft: rgba(212, 175, 55, 0.28);
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+body {
+  background: #030303;
+  color: #fafafa;
+}
+
+@layer utilities {
+  .glass-panel {
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .glass-header {
+    background: rgba(6, 6, 8, 0.65);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-marquee-ticker {
+    animation: marquee 40s linear infinite;
+  }
+
+  .animate-marquee-ticker-slow {
+    animation: marquee 52s linear infinite;
+  }
+
+  /* Видео-прелоадер: стабильный слой отрисовки, без лишнего размытия */
+  .high-quality {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
